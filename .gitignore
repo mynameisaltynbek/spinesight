@@ -1,3 +1,5 @@
 data/
+test_real/
+rig/landmarks.png
 __pycache__/
 .pytest_cache/

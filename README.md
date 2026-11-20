@@ -46,6 +46,25 @@ Input data (not in the repo): VerSe 2019, case `sub-verse031`, from https://osf.
 
 Vertebral body: 48 × 36 × 32 mm (width × depth × height).
 
+## Camera rig and ground truth (`rig/`)
+
+Ground truth for the real test set: a ChArUco board and the printed vertebra glued to one rigid plate, side by side. The board gives the camera pose; a one-time registration gives the vertebra pose on the board.
+
+Run from the `rig` folder:
+
+```
+python make_board.py
+python calibrate.py
+python register.py
+python capture.py
+python -m pytest -q
+```
+
+1. `make_board.py` writes `board.pdf` (A4, 7×5 squares of 30 mm). Print at 100% and measure a square; if it is not 30 mm, set `SQUARE_MM` in `common.py`.
+2. `calibrate.py` — show the board from 15–30 angles, press space for each view, q to finish. Saves `camera.json`. Good result: below 0.5 px.
+3. `register.py` — writes `landmarks.png` with 4 points (spinous tip, left and right transverse tips, front of the body). Take 3+ views (space), then click each point in each view (enter = ok, s = not visible). Rays from all views are triangulated in board coordinates and matched to the STL points (Kabsch). Saves `vertebra_pose.json` with the error per point in mm.
+4. `capture.py` — live view with the STL outline drawn on the vertebra. Space saves the frame and its pose to `test_real/`. Collect 300–500 frames (light, background, distance, occlusion) and do not change them later.
+
 ## Known limits
 
 - The mask has 2 mm voxels left-right, so pedicle width is measured in 2 mm steps.
