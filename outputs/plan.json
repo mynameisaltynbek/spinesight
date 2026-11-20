@@ -1,0 +1,70 @@
+{
+  "voxel_mm": [
+    2.0,
+    1.0,
+    1.0
+  ],
+  "vertebra_size_mm": [
+    84.0,
+    83.0,
+    52.0
+  ],
+  "body_size_mm": [
+    48.0,
+    36.0,
+    32.0
+  ],
+  "screw_diameter_mm": 6.5,
+  "screws": [
+    {
+      "side": "left",
+      "isthmus": [
+        31.62,
+        48.0,
+        37.38
+      ],
+      "entry": [
+        27.19,
+        35.85,
+        36.02
+      ],
+      "tip": [
+        42.33,
+        77.44,
+        40.68
+      ],
+      "length_mm": 44.5,
+      "medial_angle_deg": 20,
+      "cranial_angle_deg": 6,
+      "pedicle_width_mm": 12.0,
+      "pedicle_height_mm": 14.0,
+      "clearance_mm": 1.33,
+      "breach": false
+    },
+    {
+      "side": "right",
+      "isthmus": [
+        63.03,
+        46.0,
+        38.98
+      ],
+      "entry": [
+        63.43,
+        34.68,
+        36.99
+      ],
+      "tip": [
+        62.03,
+        74.54,
+        44.02
+      ],
+      "length_mm": 40.5,
+      "medial_angle_deg": 2,
+      "cranial_angle_deg": 10,
+      "pedicle_width_mm": 12.0,
+      "pedicle_height_mm": 14.0,
+      "clearance_mm": 0.87,
+      "breach": false
+    }
+  ]
+}
