@@ -5,3 +5,5 @@ nibabel
 pytest
 opencv-python
 matplotlib
+torch
+torchvision

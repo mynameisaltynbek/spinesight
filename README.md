@@ -80,6 +80,34 @@ python -m pytest -q
 - Put your own background photos (jpg/png) into `synth/backgrounds/`; without them only generated backgrounds are used.
 - `synth_out/preview.jpg` shows 16 samples (green = visible keypoint, red = hidden); `preview_real.jpg` shows 16 real frames when `test_real/` exists.
 
+## Pose model (`model/`)
+
+Keypoint heatmaps + PnP, following "Simple Baselines for Human Pose Estimation" (Xiao et al., 2018): ResNet-18 (ImageNet weights) → 3 transposed convolutions → one heatmap per keypoint at 1/4 resolution. Input 640×352. Keypoints are read as the weighted mean around the heatmap peak, then `solvePnPRansac` (EPnP) + Levenberg–Marquardt refinement gives the vertebra pose.
+
+```
+cd model
+python train.py ../synth_out 30
+python evaluate.py model.pt ../synth_out
+python evaluate.py model.pt ../test_real
+python -m pytest -q
+```
+
+- `train.py` keeps the last 5% of synthetic images for validation and saves the best `model.pt`.
+- `evaluate.py` on `synth_out` uses only those validation images; on `test_real` it uses every frame. It prints median and 90th percentile of: rotation error, translation error, ADD (mean distance of model points), screw entry point error and screw direction error for both planned screws, keypoint error in pixels, and the share of frames with ADD below 10% of the vertebra size. Per-frame numbers go to `results.csv`.
+
+### Training on Google Colab (free GPU)
+
+```
+!git clone https://github.com/mynameisaltynbek/spinesight
+%cd spinesight
+!pip install -q -r requirements.txt
+!python synth/generate.py 10000
+%cd model
+!python train.py ../synth_out 30
+```
+
+Upload your `synth/backgrounds/` photos before `generate.py`, and download `model/model.pt` when training ends.
+
 ## Known limits
 
 - The mask has 2 mm voxels left-right, so pedicle width is measured in 2 mm steps.

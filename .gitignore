@@ -2,6 +2,8 @@ data/
 test_real/
 synth_out/
 synth/backgrounds/
+*.pt
+results.csv
 rig/landmarks.png
 __pycache__/
 .pytest_cache/
