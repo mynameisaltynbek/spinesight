@@ -65,6 +65,21 @@ python -m pytest -q
 3. `register.py` — writes `landmarks.png` with 4 points (spinous tip, left and right transverse tips, front of the body). Take 3+ views (space), then click each point in each view (enter = ok, s = not visible). Rays from all views are triangulated in board coordinates and matched to the STL points (Kabsch). Saves `vertebra_pose.json` with the error per point in mm.
 4. `capture.py` — live view with the STL outline drawn on the vertebra. Space saves the frame and its pose to `test_real/`. Collect 300–500 frames (light, background, distance, occlusion) and do not change them later.
 
+## Synthetic training data (`synth/`)
+
+```
+cd synth
+python generate.py 10000
+python -m pytest -q
+```
+
+- 10 keypoints are picked on the STL surface by farthest point sampling (`synth_out/keypoints.json`).
+- Each image: random rotation, distance 250–600 mm, a simple numpy/OpenCV renderer (painter's algorithm, diffuse + specular light), random background, 0–2 occluders, blur, noise, brightness and JPEG quality.
+- Each label (`NNNNNN.json`) has the same pose format as `rig/capture.py` plus `keypoints_2d` and `visible` (hidden by the vertebra itself or by an occluder).
+- Uses `rig/camera.json` when it exists, at half resolution.
+- Put your own background photos (jpg/png) into `synth/backgrounds/`; without them only generated backgrounds are used.
+- `synth_out/preview.jpg` shows 16 samples (green = visible keypoint, red = hidden); `preview_real.jpg` shows 16 real frames when `test_real/` exists.
+
 ## Known limits
 
 - The mask has 2 mm voxels left-right, so pedicle width is measured in 2 mm steps.

@@ -1,5 +1,7 @@
 data/
 test_real/
+synth_out/
+synth/backgrounds/
 rig/landmarks.png
 __pycache__/
 .pytest_cache/
