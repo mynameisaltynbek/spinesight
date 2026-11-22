@@ -42,18 +42,20 @@ def run(net, dl, dev, opt=None):
 if __name__ == "__main__":
     folder = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "synth_out"
     epochs = int(sys.argv[2]) if len(sys.argv) > 2 else 30
-    out = Path(sys.argv[3]) if len(sys.argv) > 3 else ROOT / "model" / "model.pt"
+    seed = int(sys.argv[3]) if len(sys.argv) > 3 else 0
+    out = ROOT / "model" / f"model_s{seed}.pt"
+    torch.manual_seed(seed)
     kps = np.array(json.load(open(folder / "keypoints.json"))["keypoints_3d"])
     files = sorted(folder.glob("[0-9]*.json"))
     n_val = max(1, len(files) // 20)
     dev = "cuda" if torch.cuda.is_available() else "cpu"
-    train_dl = DataLoader(Frames(files[:-n_val], kps), batch_size=32, shuffle=True, num_workers=2)
+    train_dl = DataLoader(Frames(files[:-2 * n_val], kps), batch_size=32, shuffle=True, num_workers=2)
     val_dl = DataLoader(Frames(files[-n_val:], kps), batch_size=32, num_workers=2)
     net = Net(len(kps)).to(dev)
     opt = torch.optim.AdamW(net.parameters(), lr=1e-3, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, epochs)
     best = float("inf")
-    print(f"{len(files) - n_val} train, {n_val} val, device {dev}")
+    print(f"{len(files) - 2 * n_val} train, {n_val} calibration (not used here), {n_val} val, seed {seed}, device {dev}")
     for ep in range(epochs):
         tr = run(net, train_dl, dev, opt)
         va = run(net, val_dl, dev)

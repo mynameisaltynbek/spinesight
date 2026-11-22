@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.append(str(ROOT / "rig"))
 from common import load_stl
 
-ckpt = torch.load(sys.argv[1] if len(sys.argv) > 1 else ROOT / "model" / "model.pt", map_location="cpu")
+ckpt = torch.load(sys.argv[1] if len(sys.argv) > 1 else ROOT / "model" / "model_s0.pt", map_location="cpu")
 folder = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "test_real"
 kps = np.array(ckpt["keypoints_3d"])
 net = Net(len(kps), pretrained=False)

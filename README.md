@@ -86,13 +86,13 @@ Keypoint heatmaps + PnP, following "Simple Baselines for Human Pose Estimation" 
 
 ```
 cd model
-python train.py ../synth_out 30
-python evaluate.py model.pt ../synth_out
-python evaluate.py model.pt ../test_real
+python train.py ../synth_out 30 0
+python evaluate.py model_s0.pt ../synth_out
+python evaluate.py model_s0.pt ../test_real
 python -m pytest -q
 ```
 
-- `train.py` keeps the last 5% of synthetic images for validation and saves the best `model.pt`.
+- `train.py FOLDER EPOCHS SEED` trains on the first 90% of synthetic images, keeps 5% for calibration (not touched) and the last 5% for validation, and saves the best `model_s{SEED}.pt`.
 - `evaluate.py` on `synth_out` uses only those validation images; on `test_real` it uses every frame. It prints median and 90th percentile of: rotation error, translation error, ADD (mean distance of model points), screw entry point error and screw direction error for both planned screws, keypoint error in pixels, and the share of frames with ADD below 10% of the vertebra size. Per-frame numbers go to `results.csv`.
 
 ### Training on Google Colab (free GPU)
@@ -103,10 +103,32 @@ python -m pytest -q
 !pip install -q -r requirements.txt
 !python synth/generate.py 10000
 %cd model
-!python train.py ../synth_out 30
+!for s in 0 1 2 3 4; do python train.py ../synth_out 30 $s; done
 ```
 
-Upload your `synth/backgrounds/` photos before `generate.py`, and download `model/model.pt` when training ends.
+Upload your `synth/backgrounds/` photos before `generate.py`, and download `model/model_s*.pt` when training ends.
+
+## Knowing when not to answer (`model/ensemble.py`)
+
+An ensemble of 3–5 models trained with different seeds. For each frame the heatmaps are averaged for the final pose, and three uncertainty signals are computed:
+
+| Signal | Meaning |
+|---|---|
+| `spread_mm` | how far the screw entry points of the single models are from their mean (worst screw) |
+| `low_confidence` | 1 − mean heatmap peak of the averaged heatmaps |
+| `reprojection_px` | mean distance between predicted keypoints and the keypoints projected from the final pose |
+
+A frame is *bad* when the screw entry point error is above 3 mm or no pose is found.
+
+```
+python ensemble.py calibrate ../synth_out
+python ensemble.py test ../synth_out
+python ensemble.py test ../test_real
+python -m pytest -q
+```
+
+- `calibrate` uses the 5% calibration split, draws the risk–coverage curve for each signal (`risk_coverage_calibrate.png`, AURC: lower is better) and picks the largest `spread_mm` threshold with at most 5% bad answers (`model/threshold.json`).
+- `test` applies that threshold and reports how many frames are answered and how many answers are bad.
 
 ## Known limits
 
