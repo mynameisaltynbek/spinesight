@@ -1,0 +1,32 @@
+{
+  "vertebra_L3": {
+    "size_mm": [
+      82.9,
+      82.5,
+      47.7
+    ],
+    "volume_cm3": 52.0,
+    "pla_grams_20pct_infill": 28.1,
+    "pla_grams_solid": 64.5
+  },
+  "socket_L3": {
+    "size_mm": [
+      60.0,
+      93.5,
+      23.0
+    ],
+    "volume_cm3": 114.4,
+    "pla_grams_20pct_infill": 52.9,
+    "pla_grams_solid": 141.8
+  },
+  "marker_holder": {
+    "size_mm": [
+      40.0,
+      9.0,
+      65.0
+    ],
+    "volume_cm3": 4.4,
+    "pla_grams_20pct_infill": 5.5,
+    "pla_grams_solid": 5.5
+  }
+}
