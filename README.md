@@ -130,6 +130,39 @@ python -m pytest -q
 - `calibrate` uses the 5% calibration split, draws the risk–coverage curve for each signal (`risk_coverage_calibrate.png`, AURC: lower is better) and picks the largest `spread_mm` threshold with at most 5% bad answers (`model/threshold.json`).
 - `test` applies that threshold and reports how many frames are answered and how many answers are bad.
 
+## Trainer mode (`trainer/`)
+
+The student holds a Ø4 mm rod in the printed `marker_holder.stl` with a 30 mm ArUco marker (`rig/make_marker.py` → `tool_marker.pdf`). The vertebra sits in `socket_L3.stl` next to the ChArUco board.
+
+```
+cd rig
+python make_marker.py
+python pivot.py
+cd ../trainer
+python trainer.py P01 spinesight train
+python trainer.py P01 spinesight post --pose model --serial COM3
+python -m pytest -q
+```
+
+- `pivot.py` finds the rod tip in the marker frame: put the tip in a small hole and tilt the tool in all directions while recording (r). Least-squares pivot calibration; saves `rig/tool.json` with the error in mm.
+- `trainer.py PARTICIPANT GROUP PHASE` shows the vertebra outline, the planned screws and the tool axis, and scores the current aim: distance from the tool tip to the planned entry point, angle to the planned direction, and the predicted cortical breach of a 6.5 mm screw along the tool axis, graded A–E like Gertsbein–Robbins (A none, B < 2 mm, C < 4, D < 6, E ≥ 6). Feedback is shown only for group `spinesight` in phase `train`; in `pre`, `post` and for `control` it is recorded but hidden. Space appends the attempt to `study/attempts.csv` (not in the repo).
+- `--pose board` (default) takes the vertebra pose from the board and `rig/vertebra_pose.json`; `--pose model` uses the ensemble and gives no score when the spread is above `model/threshold.json`.
+- `--serial COMx` reads the breach sensor.
+
+### Breach sensor (`trainer/breach_sensor/breach_sensor.ino`)
+
+Arduino Uno or Nano. Conductive paint or copper tape on the inner walls of the canal and the medial pedicle wall → pin D2; the metal rod → GND. Touching the wall closes the circuit: LED 13 lights, a buzzer on D8 beeps and the board sends `B` over USB serial at 115200 baud.
+
+### From attempts to statistics
+
+```
+cd study
+python summarize.py attempts.csv
+python stats.py results.csv
+```
+
+`summarize.py` averages the entry point error per participant for `pre` and `post` and marks a breach when any attempt in the phase is grade C–E or touched the sensor.
+
 ## Known limits
 
 - The mask has 2 mm voxels left-right, so pedicle width is measured in 2 mm steps.

@@ -9,6 +9,10 @@ BOARD = cv2.aruco.CharucoBoard((7, 5), SQUARE_MM, MARKER_MM, cv2.aruco.getPredef
 DETECTOR = cv2.aruco.CharucoDetector(BOARD)
 LANDMARKS = ["spinous process tip", "left transverse process tip", "right transverse process tip", "front of the body"]
 FONT = cv2.FONT_HERSHEY_SIMPLEX
+TOOL_DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+TOOL_ID = 0
+TOOL_MM = 30.0
+TOOL_DETECTOR = cv2.aruco.ArucoDetector(TOOL_DICT)
 
 
 def open_camera(index=0):
@@ -45,6 +49,25 @@ def board_pose(frame, cam):
         return None
     ok, rvec, tvec = cv2.solvePnP(obj, img, cam["K"], cam["dist"])
     return (cv2.Rodrigues(rvec)[0], tvec.ravel()) if ok else None
+
+
+def tool_pose(frame, cam):
+    corners, ids, _ = TOOL_DETECTOR.detectMarkers(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))
+    if ids is None or TOOL_ID not in ids.ravel():
+        return None
+    c = corners[list(ids.ravel()).index(TOOL_ID)].reshape(4, 2)
+    s = TOOL_MM / 2
+    obj = np.array([[-s, s, 0], [s, s, 0], [s, -s, 0], [-s, -s, 0]])
+    ok, rvec, tvec = cv2.solvePnP(obj, c, cam["K"], cam["dist"], flags=cv2.SOLVEPNP_IPPE_SQUARE)
+    return (cv2.Rodrigues(rvec)[0], tvec.ravel()) if ok else None
+
+
+def solve_pivot(poses):
+    A = np.vstack([np.hstack([R, -np.eye(3)]) for R, _ in poses])
+    b = np.concatenate([-t for _, t in poses])
+    x = np.linalg.lstsq(A, b, rcond=None)[0]
+    res = (A @ x - b).reshape(-1, 3)
+    return x[:3], x[3:], float(np.sqrt((res ** 2).sum(1).mean()))
 
 
 def load_camera(path="camera.json"):

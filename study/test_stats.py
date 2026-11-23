@@ -15,3 +15,12 @@ def test_bootstrap_ci_contains_true_shift():
     a = rng.normal(2, 1, 40)
     lo, hi = bootstrap_ci(a + 3, a, n=2000)
     assert lo < 3 < hi and lo > 0
+
+
+def test_summarize_means_and_breach():
+    from summarize import summarize
+    row = lambda p, g, ph, mm, gr, sb="0": {"participant": p, "group": g, "phase": ph, "entry_mm": mm, "grade": gr, "sensor_breach": sb}
+    rows = [row("P1", "control", "pre", "6", "A"), row("P1", "control", "pre", "4", "C"), row("P1", "control", "train", "9", "E"),
+            row("P1", "control", "post", "3", "B", "1"), row("P2", "spinesight", "pre", "5", "A")]
+    out = summarize(rows)
+    assert out == [{"participant": "P1", "group": "control", "pre_mm": 5.0, "post_mm": 3.0, "pre_breach": 1, "post_breach": 1}]
