@@ -17,7 +17,12 @@
     ],
     "volume_cm3": 114.4,
     "pla_grams_20pct_infill": 52.9,
-    "pla_grams_solid": 141.8
+    "pla_grams_solid": 141.8,
+    "offset_in_vertebra_frame_mm": [
+      20.0,
+      -2.0,
+      3.0
+    ]
   },
   "marker_holder": {
     "size_mm": [

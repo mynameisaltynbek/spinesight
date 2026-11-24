@@ -1,0 +1,377 @@
+<title>SpineSight 3D Viewer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<style>
+/* Layout: one working screen; a large viewport on the left, an instrument-style panel on the right, stacked on phones. */
+:root {
+  --bg: #eef2f4;
+  --panel: #ffffff;
+  --viewport: #e3e9ed;
+  --fg: #17232c;
+  --muted: #586874;
+  --line: #d3dce2;
+  --accent: #1d6b88;
+  --accent-ink: #ffffff;
+  --left: #d27028;
+  --right: #2f7fc1;
+  --ok: #2c8a57;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-head: "IBM Plex Sans Condensed", "IBM Plex Sans", "Arial Narrow", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f151a; --panel: #151d23; --viewport: #0b1014; --fg: #e2e9ee; --muted: #8b9ba6;
+    --line: #25313a; --accent: #5bb2d0; --accent-ink: #08141a; --left: #e5893f; --right: #5aa2dd; --ok: #4fbf80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f151a; --panel: #151d23; --viewport: #0b1014; --fg: #e2e9ee; --muted: #8b9ba6;
+  --line: #25313a; --accent: #5bb2d0; --accent-ink: #08141a; --left: #e5893f; --right: #5aa2dd; --ok: #4fbf80;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font: 15px/1.5 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px;
+}
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 12px; }
+h1 { font: 600 1.6rem/1.15 var(--font-head); letter-spacing: 0.01em; margin: 0; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+@media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.stage { position: relative; min-width: 0; height: min(78vh, 760px); min-height: 340px; background: var(--viewport); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+@media (max-width: 860px) { .stage { height: 62vh; } }
+#view { display: block; width: 100%; height: 100%; touch-action: none; }
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-family: var(--font-data); font-size: 0.9rem; }
+.overlay[hidden] { display: none; }
+.axes { position: absolute; left: 12px; bottom: 10px; font: 0.75rem/1.4 var(--font-data); color: var(--muted); pointer-events: none; }
+.hint { position: absolute; left: 12px; right: 12px; top: 10px; font: 0.75rem/1.4 var(--font-data); color: var(--muted); pointer-events: none; }
+aside { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+section.box { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+h2 { font: 600 0.78rem/1 var(--font-head); text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); margin: 0; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button, .views button {
+  font: 500 0.85rem/1 var(--font-body); color: var(--fg); background: transparent; border: 1px solid var(--line);
+  border-radius: 4px; padding: 7px 10px; cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.views { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.toggles { display: flex; flex-direction: column; gap: 6px; }
+label.check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; }
+.range { display: flex; align-items: center; gap: 10px; }
+.range input { flex: 1; min-width: 0; accent-color: var(--accent); }
+.range output { font: 0.85rem var(--font-data); width: 3.5ch; text-align: right; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th, td { text-align: right; padding: 5px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+th:first-child, td:first-child { text-align: left; color: var(--muted); font-weight: 400; }
+thead th { font: 600 0.8rem var(--font-head); letter-spacing: 0.04em; }
+td { font-family: var(--font-data); }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+.l { background: var(--left); } .r { background: var(--right); }
+.ok { color: var(--ok); }
+.note { font-size: 0.8rem; color: var(--muted); margin: 0; }
+</style>
+
+<header>
+  <h1>SpineSight 3D Viewer</h1>
+  <p>Lumbar vertebra L3 rebuilt from CT, with the planned pedicle screws, the printed socket and the tracked tool.</p>
+</header>
+
+<div class="layout">
+  <div class="stage" id="stage">
+    <canvas id="view" aria-label="3D view of vertebra L3 with planned pedicle screws"></canvas>
+    <div class="overlay" id="status">Loading CT model…</div>
+    <div class="axes" id="axes">view: posterior</div>
+    <div class="hint">drag to rotate · scroll or pinch to zoom · right-drag to pan</div>
+  </div>
+
+  <aside>
+    <section class="box">
+      <h2>View</h2>
+      <div class="views">
+        <button type="button" data-view="posterior">Back</button>
+        <button type="button" data-view="top">Top</button>
+        <button type="button" data-view="side">Side</button>
+        <button type="button" data-view="oblique">3/4</button>
+      </div>
+      <label class="check"><input type="checkbox" id="spin"> Rotate slowly</label>
+    </section>
+
+    <section class="box">
+      <h2>Layers</h2>
+      <div class="toggles">
+        <label class="check"><input type="checkbox" id="showScrews" checked> Planned screws (Ø 6.5 mm)</label>
+        <label class="check"><input type="checkbox" id="showSocket"> Printed socket</label>
+        <label class="check"><input type="checkbox" id="showTool"> Tool with ArUco marker</label>
+      </div>
+      <div class="range">
+        <label for="opacity">Bone</label>
+        <input type="range" id="opacity" min="0.15" max="1" step="0.05" value="1">
+        <output id="opacityOut" for="opacity">100%</output>
+      </div>
+    </section>
+
+    <section class="box">
+      <h2>Section through the pedicle</h2>
+      <div class="seg" id="section">
+        <button type="button" data-cut="none" aria-pressed="true">Off</button>
+        <button type="button" data-cut="0" aria-pressed="false"><span class="dot l"></span>Left</button>
+        <button type="button" data-cut="1" aria-pressed="false"><span class="dot r"></span>Right</button>
+      </div>
+      <p class="note">Cuts the bone along the screw axis and turns to the top view, so the screw is seen inside the pedicle canal. The red surface is the inside of the bone.</p>
+    </section>
+
+    <section class="box">
+      <h2>Tool aim</h2>
+      <div class="seg" id="toolSide">
+        <button type="button" data-side="0" aria-pressed="true"><span class="dot l"></span>Left entry</button>
+        <button type="button" data-side="1" aria-pressed="false"><span class="dot r"></span>Right entry</button>
+      </div>
+    </section>
+
+    <section class="box">
+      <h2>Planned screws</h2>
+      <table id="plan">
+        <thead><tr><th></th><th><span class="dot l"></span>Left</th><th><span class="dot r"></span>Right</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p class="note">Clearance is the smallest distance from the screw surface to the outer bone surface; positive means no cortical breach. The planner maximises clearance and has not yet been reviewed by a surgeon.</p>
+    </section>
+
+    <p class="note">CT: VerSe 2019, case sub-verse031, CC BY-SA 4.0. Coordinates in mm, RAS orientation.</p>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const canvas = document.getElementById("view");
+const stage = document.getElementById("stage");
+const status = document.getElementById("status");
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.localClippingEnabled = true;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35, 1, 1, 2000);
+const controls = new THREE.OrbitControls(camera, canvas);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.5));
+const key = new THREE.DirectionalLight(0xffffff, 0.7);
+key.position.set(120, 160, 200);
+scene.add(key);
+const fill = new THREE.DirectionalLight(0xffffff, 0.35);
+fill.position.set(-150, -60, -120);
+scene.add(fill);
+
+const world = new THREE.Group();
+world.rotation.x = -Math.PI / 2;
+scene.add(world);
+const model = new THREE.Group();
+world.add(model);
+
+const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
+const clipPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 1e6);
+const boneMat = new THREE.MeshStandardMaterial({ color: 0xe9dfca, roughness: 0.72, metalness: 0.0, side: THREE.FrontSide, clippingPlanes: [] });
+const innerMat = new THREE.MeshStandardMaterial({ color: 0xa8493a, roughness: 0.9, side: THREE.BackSide, clippingPlanes: [] });
+const socketMat = new THREE.MeshStandardMaterial({ color: 0x7f93a6, roughness: 0.6, metalness: 0.05 });
+const holderMat = new THREE.MeshStandardMaterial({ color: 0xc9d2da, roughness: 0.5 });
+const steelMat = new THREE.MeshStandardMaterial({ color: 0xb8c2cc, roughness: 0.3, metalness: 0.7 });
+
+let data, center, radius, screwGroup, socketMesh, toolGroup, holderGeo, toolSide = 0, cut = "none";
+
+function setBackground() {
+  scene.background = new THREE.Color(css("--viewport") || "#e3e9ed");
+}
+setBackground();
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", setBackground);
+new MutationObserver(setBackground).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+function cylinderBetween(a, b, r, material) {
+  const dir = new THREE.Vector3().subVectors(b, a);
+  const geo = new THREE.CylinderGeometry(r, r, dir.length(), 32);
+  const mesh = new THREE.Mesh(geo, material);
+  mesh.position.copy(a).addScaledVector(dir, 0.5);
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+  return mesh;
+}
+
+function buildScrews() {
+  screwGroup = new THREE.Group();
+  data.screws.forEach((s, i) => {
+    const color = new THREE.Color(css(i === 0 ? "--left" : "--right"));
+    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.35, metalness: 0.45 });
+    screwGroup.add(cylinderBetween(V(s.entry), V(s.tip), data.screw_diameter_mm / 2, mat));
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(2.2, 24, 16), mat);
+    ball.position.copy(V(s.entry));
+    screwGroup.add(ball);
+  });
+  model.add(screwGroup);
+}
+
+function markerTexture(bits) {
+  const c = document.createElement("canvas");
+  c.width = c.height = 6 * 32;
+  const g = c.getContext("2d");
+  bits.forEach((row, y) => row.forEach((v, x) => { g.fillStyle = v ? "#ffffff" : "#000000"; g.fillRect(x * 32, y * 32, 32, 32); }));
+  const t = new THREE.CanvasTexture(c);
+  t.magFilter = THREE.NearestFilter;
+  return t;
+}
+
+function buildTool() {
+  if (toolGroup) model.remove(toolGroup);
+  const s = data.screws[toolSide];
+  const e = V(s.entry), u = V(s.tip).sub(e).normalize();
+  const z = u.clone().negate();
+  let x = new THREE.Vector3().crossVectors(z, new THREE.Vector3(0, 0, 1));
+  if (x.lengthSq() < 1e-6) x.set(1, 0, 0);
+  x.normalize();
+  const y = new THREE.Vector3().crossVectors(z, x);
+  const origin = e.clone().addScaledVector(u, -70);
+  const frame = new THREE.Matrix4().makeBasis(x, y, z).setPosition(origin);
+  toolGroup = new THREE.Group();
+  toolGroup.add(cylinderBetween(e, origin.clone().addScaledVector(u, -24), 2, steelMat));
+  const holder = new THREE.Group();
+  holder.applyMatrix4(frame);
+  holder.add(new THREE.Mesh(holderGeo, holderMat));
+  const marker = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.MeshBasicMaterial({ map: markerTexture(data.marker_bits) }));
+  marker.position.set(0, 1.05, 45);
+  marker.rotation.x = -Math.PI / 2;
+  marker.rotation.z = Math.PI;
+  holder.add(marker);
+  toolGroup.add(holder);
+  toolGroup.visible = document.getElementById("showTool").checked;
+  model.add(toolGroup);
+}
+
+function frameCamera(view) {
+  const d = radius * 3.1;
+  const dirs = { posterior: [0, 0.15, 1], top: [0, 1, 0.001], side: [1, 0.12, 0], oblique: [0.75, 0.6, 0.9] };
+  const v = new THREE.Vector3(...dirs[view]).normalize().multiplyScalar(d);
+  camera.position.copy(v);
+  camera.up.set(0, view === "top" ? 0 : 1, view === "top" ? -1 : 0);
+  controls.target.set(0, 0, 0);
+  camera.lookAt(0, 0, 0);
+  controls.update();
+  document.getElementById("axes").textContent = "view: " + { posterior: "posterior (back)", top: "superior (top)", side: "lateral (side)", oblique: "oblique" }[view];
+}
+
+function applyCut() {
+  document.querySelectorAll("#section button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.cut === cut)));
+  if (cut === "none") {
+    boneMat.clippingPlanes = [];
+    innerMat.clippingPlanes = [];
+  } else {
+    const s = data.screws[Number(cut)];
+    const a = V(s.entry), b = V(s.tip);
+    const u = b.clone().sub(a).normalize();
+    const up = new THREE.Vector3(0, 0, 1);
+    const n = up.clone().addScaledVector(u, -up.dot(u)).normalize().negate();
+    model.updateMatrixWorld(true);
+    clipPlane.setFromNormalAndCoplanarPoint(n, a.clone().add(b).multiplyScalar(0.5)).applyMatrix4(model.matrixWorld);
+    boneMat.clippingPlanes = [clipPlane];
+    innerMat.clippingPlanes = [clipPlane];
+    frameCamera("top");
+  }
+  boneMat.needsUpdate = innerMat.needsUpdate = true;
+}
+
+function fillTable() {
+  const rows = [
+    ["Medial angle", s => s.medial_angle_deg + "°"],
+    ["Cranial angle", s => s.cranial_angle_deg + "°"],
+    ["Length", s => s.length_mm.toFixed(1) + " mm"],
+    ["Clearance", s => s.clearance_mm.toFixed(2) + " mm"],
+    ["Pedicle w × h", s => s.pedicle_width_mm + " × " + s.pedicle_height_mm],
+    ["Breach", s => s.breach ? "yes" : "none"],
+  ];
+  document.querySelector("#plan tbody").innerHTML = rows.map(([name, f]) =>
+    `<tr><th scope="row">${name}</th>${data.screws.map(s => `<td class="${name === "Breach" && !s.breach ? "ok" : ""}">${f(s)}</td>`).join("")}</tr>`).join("");
+}
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+
+const bytes = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer;
+function geometry(m) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(bytes(m.positions)), 3));
+  g.setIndex(new THREE.BufferAttribute(new Uint32Array(bytes(m.index)), 1));
+  return g;
+}
+
+const getJSON = url => fetch(url).then(r => { if (!r.ok) throw new Error(url + " " + r.status); return r.json(); });
+
+Promise.all([getJSON("data.json"), getJSON("meshes.json")])
+  .then(([d, meshes]) => {
+    data = d;
+    const bone = geometry(meshes.vertebra), socket = geometry(meshes.socket), holder = geometry(meshes.holder);
+    holderGeo = holder;
+    bone.computeVertexNormals();
+    socket.computeVertexNormals();
+    holder.computeVertexNormals();
+    bone.computeBoundingBox();
+    center = bone.boundingBox.getCenter(new THREE.Vector3());
+    radius = bone.boundingBox.getSize(new THREE.Vector3()).length() / 2;
+    model.position.copy(center).negate();
+    model.add(new THREE.Mesh(bone, boneMat));
+    model.add(new THREE.Mesh(bone, innerMat));
+    socketMesh = new THREE.Mesh(socket, socketMat);
+    socketMesh.position.copy(V(data.socket_offset));
+    socketMesh.visible = false;
+    model.add(socketMesh);
+    buildScrews();
+    buildTool();
+    fillTable();
+    resize();
+    frameCamera("posterior");
+    status.hidden = true;
+  })
+  .catch(err => { status.textContent = "Could not load the model files: " + err.message; });
+
+document.querySelectorAll(".views button").forEach(b => b.addEventListener("click", () => frameCamera(b.dataset.view)));
+document.querySelectorAll("#section button").forEach(b => b.addEventListener("click", () => { cut = b.dataset.cut; applyCut(); }));
+document.querySelectorAll("#toolSide button").forEach(b => b.addEventListener("click", () => {
+  toolSide = Number(b.dataset.side);
+  document.querySelectorAll("#toolSide button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  document.getElementById("showTool").checked = true;
+  buildTool();
+}));
+document.getElementById("showScrews").addEventListener("change", e => { screwGroup.visible = e.target.checked; });
+document.getElementById("showSocket").addEventListener("change", e => { socketMesh.visible = e.target.checked; });
+document.getElementById("showTool").addEventListener("change", e => { toolGroup.visible = e.target.checked; });
+document.getElementById("opacity").addEventListener("input", e => {
+  const v = Number(e.target.value);
+  boneMat.opacity = v;
+  boneMat.transparent = v < 1;
+  boneMat.depthWrite = v >= 1;
+  innerMat.visible = v >= 1;
+  boneMat.needsUpdate = true;
+  document.getElementById("opacityOut").textContent = Math.round(v * 100) + "%";
+});
+const spin = document.getElementById("spin");
+spin.addEventListener("change", () => { controls.autoRotate = spin.checked; });
+controls.autoRotateSpeed = 1.2;
+
+(function loop() {
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+})();
+</script>

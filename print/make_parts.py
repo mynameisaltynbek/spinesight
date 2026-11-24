@@ -39,7 +39,7 @@ def socket(vox, depth=20.0, floor=3.0, margin=5.0, gap=1):
     padded = np.pad(cavity, ((m, m), (m, m), (0, 0)))[lo[0] + m:hi[0] + m, lo[1] + m:hi[1] + m]
     box = np.ones((padded.shape[0], padded.shape[1], int(floor / STEP) + padded.shape[2]), bool)
     box[:, :, int(floor / STEP):] = ~padded
-    return box
+    return box, np.array([lo[0], lo[1], z - int(floor / STEP)]) * STEP
 
 
 def marker_holder(size=40.0, thick=2.0, hole=4.3, outer=9.0, length=25.0, step=0.25):
@@ -77,7 +77,8 @@ if __name__ == "__main__":
     out.mkdir(parents=True, exist_ok=True)
     m, sp = load(ROOT / "data" / "sub-verse031_seg-vert_msk.nii.gz", 22)
     shutil.copy(ROOT / "outputs" / "vertebra.stl", out / "vertebra_L3.stl")
-    v, f = surface(socket(solid(m, sp)), STEP)
+    box, offset = socket(solid(m, sp))
+    v, f = surface(box, STEP)
     write_stl(out / "socket_L3.stl", [(v, f)])
     vox, step = marker_holder()
     v, f = surface(vox, step)
@@ -93,5 +94,6 @@ if __name__ == "__main__":
             "pla_grams_solid": round(volume / 1000 * PLA, 1),
         }
         preview(tris, out / f"{name}.png")
+    report["socket_L3"]["offset_in_vertebra_frame_mm"] = offset.round(2).tolist()
     json.dump(report, open(out / "parts.json", "w"), indent=2)
     print(json.dumps(report, indent=2))

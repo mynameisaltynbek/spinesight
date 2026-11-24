@@ -8,3 +8,4 @@ rig/landmarks.png
 __pycache__/
 .pytest_cache/
 study/attempts.csv
+viewer/assets/

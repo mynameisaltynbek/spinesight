@@ -10,7 +10,8 @@ def cube_vox():
 
 
 def test_socket_has_floor_open_top_and_walls():
-    s = socket(cube_vox(), depth=8, floor=3, margin=5, gap=1)
+    s, offset = socket(cube_vox(), depth=8, floor=3, margin=5, gap=1)
+    assert np.allclose(offset, [(20 - 1 - 10) * STEP, (20 - 1 - 10) * STEP, (10 - 6) * STEP])
     floor = int(3 / STEP)
     c = s.shape[0] // 2
     assert s[c, c, :floor].all()
