@@ -18,7 +18,7 @@ from score import score, tool_in_vertebra
 from spine import load
 
 COLORS = {"A": (0, 200, 0), "B": (0, 200, 200), "-": (200, 200, 200)}
-FIELDS = ["time", "participant", "group", "phase", "pose_source", "side", "entry_mm", "angle_deg", "breach_mm", "grade", "sensor_breach"]
+FIELDS = ["time", "participant", "group", "phase", "pose_source", "side", "entry_mm", "angle_deg", "breach_mm", "grade", "wall", "depth_mm", "sensor_breach"]
 
 
 def project(points, R, t, cam):
@@ -96,6 +96,8 @@ while True:
         lines.append(("tool marker not visible", (0, 0, 255)))
     elif show and res:
         lines.append((f"{res['side']}: entry {res['entry_mm']:.1f} mm, angle {res['angle_deg']:.1f} deg, grade {res['grade']}", COLORS.get(res["grade"], (0, 0, 255))))
+        if res["wall"]:
+            lines.append((f"breach {res['breach_mm']:.1f} mm through {res['wall']} wall at {res['depth_mm']:.0f} mm depth", COLORS.get(res["grade"], (0, 0, 255))))
     elif res:
         lines.append(("feedback hidden in this phase", (255, 255, 255)))
     if sensor_breach:

@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from spine import inside, line
+from spine import inside, line, walk
 
 
 def grade(breach_mm):
@@ -34,11 +34,25 @@ def score(tip, d, screws, m, sp, dist, r=3.25):
         "angle_deg": round(float(np.degrees(np.arccos(np.clip(d @ u, -1, 1)))), 1),
         "breach_mm": None,
         "grade": "-",
+        "wall": "",
+        "depth_mm": None,
     }
     start = next((tip + k * d for k in np.arange(0, 15, 0.5) if inside(m, sp, tip + k * d)), None)
     if start is None:
         return out
-    clear = line(m, sp, dist, start, d, r)[3]
+    entry, _, length, clear = line(m, sp, dist, start, d, r)
     out["breach_mm"] = round(float(max(0.0, -clear)), 2)
     out["grade"] = grade(out["breach_mm"])
+    if clear < 0:
+        reach = (walk(m, sp, start, d) - start) @ d
+        ks = np.arange(5, reach, 0.5) if reach > 5.5 else np.array([0.0])
+        k = min(ks, key=lambda k: dist[tuple(np.round((start + k * d) / sp).astype(int))])
+        q = start + max(k, 10) * d
+        v = q - e - ((q - e) @ u) * u
+        medial = (1 if s["side"] == "left" else -1) * v[0]
+        if abs(v[0]) >= abs(v[2]):
+            out["wall"] = "medial" if medial > 0 else "lateral"
+        else:
+            out["wall"] = "cranial" if v[2] > 0 else "caudal"
+        out["depth_mm"] = round(float((start - entry) @ d + k), 1)
     return out

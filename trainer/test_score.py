@@ -36,6 +36,17 @@ def test_tilted_tool_breaches():
     assert r["angle_deg"] > 20 and r["grade"] != "A"
 
 
+def test_breach_reports_wall_and_depth():
+    m, sp, dist, screws = setup()
+    s = screws[0]
+    e, t = np.array(s["entry"]), np.array(s["tip"])
+    u = (t - e) / np.linalg.norm(t - e)
+    sign = 1 if s["side"] == "left" else -1
+    for push, wall in (([sign, 0, 0], "medial"), ([-sign, 0, 0], "lateral")):
+        r = score(e, u + 0.7 * np.array(push, float), screws, m, sp, dist)
+        assert r["grade"] != "A" and r["wall"] == wall and r["depth_mm"] >= 0, (wall, r)
+
+
 def test_tool_outside_bone_has_no_grade():
     m, sp, dist, screws = setup()
     r = score(np.array([-50.0, -50, -50]), np.array([0, 0, -1.0]), screws, m, sp, dist)
